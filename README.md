@@ -1,5 +1,4 @@
 # Command line iterpretator
-============================
 This project is my playground, take not it serious!
 
 ## Known bugs:
