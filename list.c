@@ -8,7 +8,7 @@
 int l_add(word_item **current, word_item **start, const char *a, int asize) {
   word_item *nitem = malloc(sizeof(word_item));
   nitem->word = malloc(asize);
-  strcpy(nitem->word, a);
+  strncpy(nitem->word, a, asize);
   nitem->next = NULL;
   if (*current != NULL) {
     (*current)->next = nitem;
@@ -36,6 +36,33 @@ int l_shift(word_item **src, word_item *dst, word_item **current) {
   free((*src)->word);
   free((*src));
   *src = dst->next;
+
+  return 0;
+}
+
+int convlist(word_item *lstart, char ***argvp) {
+  if (lstart == NULL) {
+    return -1;
+  }
+
+  word_item *lcurrent;
+
+  lcurrent = lstart;
+  int len;
+  for (len = 1; lcurrent->next != NULL;
+       len++) { // len = 2 -> +1 for NULL pointer
+    lcurrent = lcurrent->next;
+  }
+
+  *argvp = malloc(sizeof(char *) * (len + 1));
+
+  lcurrent = lstart;
+
+  int i;
+  for (i = 0; i < len; i++, lcurrent = lcurrent->next) {
+    (*argvp)[i] = lcurrent->word;
+  }
+  (*argvp)[i] = NULL;
 
   return 0;
 }
