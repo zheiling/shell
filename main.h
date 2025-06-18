@@ -18,6 +18,7 @@ typedef struct {
   unsigned int oua: 1;
   unsigned int out: 1;
   unsigned int inp: 1;
+  unsigned int bc: 1;
 } t_flags;
 
 enum {
@@ -36,7 +37,7 @@ int l_add(word_item **current, word_item **start, const char *a, int asize);
 int l_shift(word_item **src, word_item *dst, word_item **current);
 int convlist(word_item *lstart, char ***argv);
 // prog
-int run_prog(word_item *lstart, int flags, char rargs[3][255]);
+int run_prog(word_item *lstart, t_flags *flags, char rargs[2][255]);
 // inpt
 int extract_word(char dest[255], t_flags *flags);
 void clear_buf();

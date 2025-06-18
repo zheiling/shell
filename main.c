@@ -14,7 +14,6 @@ int main() {
   char oparg[255];
   char prev_c;
   int res_status = 0;
-  int run_flags = 0;
   int pwtype = WORD;
   char opsymb[3];
   t_flags flags;
@@ -59,7 +58,7 @@ int main() {
         switch (atype) {
         case WINBC:
           if (flags.nlin) {
-            run_flags |= WINBC;
+            flags.bc = 1;
           } else {
             fprintf(stderr, "Error: not correct use of &\n");
             flags.inv = 1;
@@ -68,16 +67,15 @@ int main() {
         case WINP:
           flags.inp = 1;
           flags.warg = 1;
-          run_flags |= WINP;
           break;
         case WOUA:
           if (flags.oua || flags.out) {
             flags.err = 1;
             flags.inv = 1;
+            fprintf(stderr, "Error: stdout is already redirected\n");
           } else {
             flags.oua = 1;
             flags.warg = 1;
-            run_flags |= WOUA;
           }
           break;
         case WOUT:
@@ -88,7 +86,6 @@ int main() {
           } else {
             flags.out = 1;
             flags.warg = 1;
-            run_flags |= WOUT;
           }
           break;
         case EXT:
@@ -105,14 +102,18 @@ int main() {
 
       if (flags.nlin && !flags.err) {
         flags.inv = 1;
-        res_status = run_prog(wstart, run_flags, rargs);
+        res_status = run_prog(wstart, &flags, rargs);
+        if (WIFEXITED(res_status)) {
+          res_status = WEXITSTATUS(res_status);
+        } else {
+          res_status = WTERMSIG(res_status);
+        }
       }
     }
 
     if (flags.inv || flags.err) {
       while (!l_shift(&wstart, &tmp, &wcur))
         ;
-      run_flags = 0;
       if (!flags.nlin) {
         clear_buf();
       }
@@ -121,8 +122,6 @@ int main() {
     }
   }
 exit:
-  putchar('\n');
-
   if (tmp.word != NULL)
     free(tmp.word);
 
@@ -138,6 +137,7 @@ void reset_flags(t_flags *flags) {
   flags->out = 0;
   flags->inp = 0;
   flags->warg = 0;
+  flags->bc = 0;
 }
 
 void show_invitation(int status) {
