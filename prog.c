@@ -1,16 +1,25 @@
 #include "main.h"
+#include <bits/types/sigset_t.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+volatile static sig_atomic_t gpid = 0;
+
 int mkprp(t_flags *flags, char rargs[2][255]);
+void sigchld_handler(int s);
 
 int run_prog(word_item *lstart, t_flags *flags, char rargs[2][255]) {
   char **argv;
+  sigset_t mask_chld, mask_emtpy;
+  sigemptyset(&mask_chld);
+  sigaddset(&mask_chld, SIGCHLD);
+  sigemptyset(&mask_emtpy);
 
   convlist(lstart, &argv);
 
@@ -37,10 +46,10 @@ int run_prog(word_item *lstart, t_flags *flags, char rargs[2][255]) {
   }
 
   if (flags->bc) {
-    int p;
-    do {
-      p = wait4(-1, NULL, WNOHANG, NULL);
-    } while (p > 0);
+    signal(SIGCHLD, sigchld_handler);
+  } else {
+    signal(SIGCHLD, NULL);
+    sigprocmask(SIG_SETMASK, &mask_chld, NULL);
   }
 
   fflush(stderr);
@@ -59,7 +68,9 @@ int run_prog(word_item *lstart, t_flags *flags, char rargs[2][255]) {
 
   int status = 0;
   if (!flags->bc) {
-    wait(&status);
+    waitpid(pid, &status, 0);
+    signal(SIGCHLD, sigchld_handler);
+    sigprocmask(SIG_SETMASK, &mask_emtpy, NULL);
   }
   free(argv);
 
@@ -91,4 +102,13 @@ int mkprp(t_flags *flags, char rargs[2][255]) {
   }
 
   return 0;
+}
+
+void sigchld_handler(int s) {
+  int s_errno = errno;
+  int p;
+  do {
+    p = wait4(-1, NULL, WNOHANG, NULL);
+  } while (p > 0);
+  errno = s_errno;
 }

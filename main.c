@@ -141,10 +141,6 @@ void reset_flags(t_flags *flags) {
 }
 
 void show_invitation(int status) {
-  int p;
-  do {
-    p = wait4(-1, NULL, WNOHANG, NULL);
-  } while (p > 0);
   fflush(stderr);
   printf("%d>", status);
 }
