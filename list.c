@@ -1,9 +1,6 @@
 #include "main.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
 int l_add(word_item **current, word_item **start, const char *a, int asize) {
   word_item *nitem = malloc(sizeof(word_item));

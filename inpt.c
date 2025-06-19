@@ -1,8 +1,6 @@
 #include "main.h"
 #include <stdio.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
 int analyze_word(char word[255]) {
   if (!strcmp(word, "&&"))
