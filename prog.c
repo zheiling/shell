@@ -11,17 +11,16 @@
 
 volatile static sig_atomic_t gpid = 0;
 
-int mkprp(t_flags *flags, char rargs[2][255]);
+int mkprp(flags_t *flags, char rargs[2][255], int in_out[2]);
 void sigchld_handler(int s);
 
-int run_prog(word_item *lstart, t_flags *flags, char rargs[2][255]) {
-  char **argv;
+int run_prog(char **argv, flags_t *flags, char rargs[2][255],
+             int in_out[2]) {
   sigset_t mask_chld, mask_emtpy;
   sigemptyset(&mask_chld);
   sigaddset(&mask_chld, SIGCHLD);
   sigemptyset(&mask_emtpy);
 
-  convlist(lstart, &argv);
 
   // "cd" case
   if (!strcmp(argv[0], "cd")) {
@@ -45,17 +44,17 @@ int run_prog(word_item *lstart, t_flags *flags, char rargs[2][255]) {
     return 0;
   }
 
-  if (flags->bc) {
+  if (flags->bg) {
     signal(SIGCHLD, sigchld_handler);
   } else {
-    signal(SIGCHLD, NULL);
+    signal(SIGCHLD, SIG_DFL);
     sigprocmask(SIG_SETMASK, &mask_chld, NULL);
   }
 
   fflush(stderr);
   int pid = fork();
   if (pid == 0) { // child process
-    int prpres = mkprp(flags, rargs);
+    int prpres = mkprp(flags, rargs, in_out);
     if (!prpres) {
       execvp(argv[0], argv);
       perror(argv[0]);
@@ -66,8 +65,16 @@ int run_prog(word_item *lstart, t_flags *flags, char rargs[2][255]) {
     _exit(errno);
   }
 
+  if (in_out[0] != -1) {
+    close(in_out[0]);
+  }
+
+  if (in_out[1] != -1) {
+    close(in_out[1]);
+  }
+
   int status = 0;
-  if (!flags->bc) {
+  if (!flags->bg) {
     waitpid(pid, &status, 0);
     signal(SIGCHLD, sigchld_handler);
     sigprocmask(SIG_SETMASK, &mask_emtpy, NULL);
@@ -77,7 +84,7 @@ int run_prog(word_item *lstart, t_flags *flags, char rargs[2][255]) {
   return status;
 }
 
-int mkprp(t_flags *flags, char rargs[2][255]) {
+int mkprp(flags_t *flags, char rargs[2][255], int in_out[2]) {
   if (flags->inp) {
     int fd = open(rargs[0], O_RDONLY);
     if (fd == -1) {
@@ -99,6 +106,16 @@ int mkprp(t_flags *flags, char rargs[2][255]) {
       return -1;
     }
     dup2(fd, 1);
+  }
+
+  if (in_out[0] != -1) {
+    dup2(in_out[0], 0);
+    close(in_out[0]);
+  }
+
+  if (in_out[1] != -1) {
+    dup2(in_out[1], 1);
+    close(in_out[1]);
   }
 
   return 0;

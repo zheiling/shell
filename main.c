@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 void show_invitation(int);
-void reset_flags(t_flags *flags);
+void reset_flags(flags_t *flags);
 
 int main() {
   char c;
@@ -16,13 +16,13 @@ int main() {
   int res_status = 0;
   int pwtype = WORD;
   char opsymb[3];
-  t_flags flags;
+  flags_t flags;
 
   char rargs[2][255]; // <, (> || >>)
 
-  word_item *wcur = NULL;
-  word_item *wstart = NULL;
-  word_item tmp;
+  word_item_t *wcur = NULL;
+  word_item_t *wstart = NULL;
+  word_item_t tmp;
 
   tmp.word = NULL;
 
@@ -58,7 +58,7 @@ int main() {
         switch (atype) {
         case WINBC:
           if (flags.nlin) {
-            flags.bc = 1;
+            flags.bg = 1;
           } else {
             fprintf(stderr, "Error: not correct use of &\n");
             flags.inv = 1;
@@ -90,6 +90,10 @@ int main() {
           break;
         case EXT:
           goto exit;
+        case WPIP:
+          l_add(&wcur, &wstart, curstr, wlen);
+          flags.pip = 1;
+          break;
         case WORD:
           l_add(&wcur, &wstart, curstr, wlen);
           break;
@@ -102,7 +106,16 @@ int main() {
 
       if (flags.nlin && !flags.err) {
         flags.inv = 1;
-        res_status = run_prog(wstart, &flags, rargs);
+        if (flags.pip) {
+          res_status = run_pipes(wstart, &flags, rargs);
+        } else {
+          int in_out[2];
+          in_out[0] = -1;
+          in_out[1] = -1;
+          char **argv;
+          convlist(wstart, &argv);
+          res_status = run_prog(argv, &flags, rargs, in_out);
+        }
         if (WIFEXITED(res_status)) {
           res_status = WEXITSTATUS(res_status);
         } else {
@@ -128,7 +141,7 @@ exit:
   return 0;
 }
 
-void reset_flags(t_flags *flags) {
+void reset_flags(flags_t *flags) {
   flags->par_used = 0;
   flags->inv = 0;
   flags->nlin = 0;
@@ -137,7 +150,8 @@ void reset_flags(t_flags *flags) {
   flags->out = 0;
   flags->inp = 0;
   flags->warg = 0;
-  flags->bc = 0;
+  flags->bg = 0;
+  flags->pip = 0;
 }
 
 void show_invitation(int status) {

@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-int l_add(word_item **current, word_item **start, const char *a, int asize) {
-  word_item *nitem = malloc(sizeof(word_item));
+int l_add(word_item_t **current, word_item_t **start, const char *a, int asize) {
+  word_item_t *nitem = malloc(sizeof(word_item_t));
   nitem->word = malloc(asize);
   strncpy(nitem->word, a, asize);
   nitem->next = NULL;
@@ -16,7 +16,7 @@ int l_add(word_item **current, word_item **start, const char *a, int asize) {
   return 0;
 }
 
-int l_shift(word_item **src, word_item *dst, word_item **current) {
+int l_shift(word_item_t **src, word_item_t *dst, word_item_t **current) {
   if (*src == NULL) {
     *current = NULL;
     return 1;
@@ -37,16 +37,16 @@ int l_shift(word_item **src, word_item *dst, word_item **current) {
   return 0;
 }
 
-int convlist(word_item *lstart, char ***argvp) {
+int convlist(word_item_t *lstart, char ***argvp) {
   if (lstart == NULL) {
     return -1;
   }
 
-  word_item *lcurrent;
+  word_item_t *lcurrent;
 
   lcurrent = lstart;
   int len;
-  for (len = 1; lcurrent->next != NULL;
+  for (len = 1; lcurrent->next != NULL && strcmp(lcurrent->word, "|");
        len++) { // len = 2 -> +1 for NULL pointer
     lcurrent = lcurrent->next;
   }
@@ -57,6 +57,7 @@ int convlist(word_item *lstart, char ***argvp) {
 
   int i;
   for (i = 0; i < len; i++, lcurrent = lcurrent->next) {
+    if (!strcmp(lcurrent->word, "|")) break;
     (*argvp)[i] = lcurrent->word;
   }
   (*argvp)[i] = NULL;

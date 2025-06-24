@@ -24,7 +24,7 @@ int analyze_word(char word[255]) {
   return WORD;
 }
 
-int extract_word(char dest[255], t_flags *flags) {
+int extract_word(char dest[255], flags_t *flags) {
   char c;
   int i = 0;
   int sc = 0;
