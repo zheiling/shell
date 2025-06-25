@@ -14,7 +14,7 @@ int analyze_word(char word[255]) {
   if (!strcmp(word, "q"))
     return EXT;
   if (!strcmp(word, "&"))
-    return WINBC;
+    return WINBG;
   if (!strcmp(word, "|"))
     return WPIP;
   if (!strcmp(word, ">"))

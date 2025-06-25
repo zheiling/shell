@@ -2,11 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 void show_invitation(int);
-void reset_flags(flags_t *flags);
 
 int main() {
   char c;
@@ -37,8 +35,9 @@ int main() {
       atype = analyze_word(curstr);
       if (flags.warg) {
         if (atype != WORD) {
-          fprintf(stderr,
-                  "Error: please provide a correct arg after special token\n");
+          fprintf(
+              stderr,
+              "Error: please provide a correct argument after special token\n");
           flags.err = 1;
           flags.inv = 1;
         } else {
@@ -56,17 +55,22 @@ int main() {
       } else if (!flags.par_used && !flags.err) {
         pwtype = atype;
         switch (atype) {
-        case WINBC:
+        case WINBG:
           if (flags.nlin) {
             flags.bg = 1;
           } else {
             fprintf(stderr, "Error: not correct use of &\n");
-            flags.inv = 1;
+            flags.err = 1;
           }
           break;
         case WINP:
           flags.inp = 1;
           flags.warg = 1;
+          if (flags.pip) {
+            flags.err = 1;
+            fprintf(stderr, "Error: input redirection \
+can be used only in the first chain of pipe!\n");
+          }
           break;
         case WOUA:
           if (flags.oua || flags.out) {
@@ -81,7 +85,6 @@ int main() {
         case WOUT:
           if (flags.oua || flags.out) {
             flags.err = 1;
-            flags.inv = 1;
             fprintf(stderr, "Error: stdout is already redirected\n");
           } else {
             flags.out = 1;
@@ -91,8 +94,15 @@ int main() {
         case EXT:
           goto exit;
         case WPIP:
-          l_add(&wcur, &wstart, curstr, wlen);
-          flags.pip = 1;
+          if (flags.oua || flags.out) {
+            flags.err = 1;
+            fprintf(stderr, "Error: output redirection \
+can be used only in the last chain of pipe!\n");
+            break;
+          } else {
+            l_add(&wcur, &wstart, curstr, wlen);
+            flags.pip = 1;
+          }
           break;
         case WORD:
           l_add(&wcur, &wstart, curstr, wlen);
@@ -104,24 +114,26 @@ int main() {
         l_add(&wcur, &wstart, curstr, wlen);
       }
 
-      if (flags.nlin && !flags.err) {
-        flags.inv = 1;
-        if (flags.pip) {
-          res_status = run_pipes(wstart, &flags, rargs);
-        } else {
-          int in_out[2];
-          in_out[0] = -1;
-          in_out[1] = -1;
-          char **argv;
-          convlist(wstart, &argv);
-          res_status = run_prog(argv, &flags, rargs, in_out);
-        }
-        if (WIFEXITED(res_status)) {
-          res_status = WEXITSTATUS(res_status);
-        } else {
-          res_status = WTERMSIG(res_status);
-        }
-      }
+      // if (flags.nlin && !flags.err) {
+      //   flags.inv = 1;
+      //   if (flags.pip) {
+      //     res_status = run_pipes(wstart, &flags, rargs);
+      //   } else {
+      //     int in_out[2];
+      //     in_out[0] = -1;
+      //     in_out[1] = -1;
+      //     char **argv;
+      //     convlist(wstart, &argv);
+      //     res_status = run_prog(argv, &flags, rargs, in_out);
+      //   }
+      //   if (WIFEXITED(res_status)) {
+      //     res_status = WEXITSTATUS(res_status);
+      //   } else {
+      //     res_status = WTERMSIG(res_status);
+      //   }
+      // }
+
+      flags.par_used = 0; // reset "parentheses were used" flag
     }
 
     if (flags.inv || flags.err) {
@@ -139,19 +151,6 @@ exit:
     free(tmp.word);
 
   return 0;
-}
-
-void reset_flags(flags_t *flags) {
-  flags->par_used = 0;
-  flags->inv = 0;
-  flags->nlin = 0;
-  flags->err = 0;
-  flags->oua = 0;
-  flags->out = 0;
-  flags->inp = 0;
-  flags->warg = 0;
-  flags->bg = 0;
-  flags->pip = 0;
 }
 
 void show_invitation(int status) {

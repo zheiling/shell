@@ -21,7 +21,6 @@ int run_pipes(word_item_t *lstart, flags_t *flags, char rargs[2][255]) {
   pipe_l_t *pl_start = iterate_list(flags, lstart);
   char **vargs;
   int fd[2];
-  int fd_0;
   int fd_args[2];
 
   // first iteration
@@ -30,12 +29,14 @@ int run_pipes(word_item_t *lstart, flags_t *flags, char rargs[2][255]) {
   pipe(fd);
   fd_args[0] = -1;
   fd_args[1] = fd[1];
-  fd_0 = fd[0];
 
   int pid = fork();
-  if (pid == 0) {
-    close(fd[1]);
-    run_prog(vargs, flags, NULL, fd_args); // TODO: поменять rargs
+  if (pid == 0) { // intermediate child process, that keeps the pipe open
+    close(fd[0]);
+    flags_t n_flags;
+    reset_flags(&n_flags);
+    n_flags.inp = flags->inp;
+    run_prog(vargs, &n_flags, rargs, fd_args); // TODO: поменять rargs
     signal(SIGPIPE, sigpipehandler);
     pause();
   }
@@ -45,8 +46,22 @@ int run_pipes(word_item_t *lstart, flags_t *flags, char rargs[2][255]) {
   // middle iterations
   while (pl_start->next != NULL) {
     vargs = lp_shift(&pl_start);
+    int pr_outpt = fd[0];
+    pr_outpt = fd[0];
     pipe(fd);
-    // TODO:
+    fd_args[0] = pr_outpt;
+    fd_args[1] = fd[1];
+
+    pid = fork();
+    if (pid == 0) { // intermediate child process, that keeps the pipe open
+      close(fd[0]);
+      flags_t n_flags;
+      reset_flags(&n_flags);
+      run_prog(vargs, &n_flags, NULL, fd_args); // TODO: поменять rargs
+      signal(SIGPIPE, sigpipehandler);
+      pause();
+    }
+    close(fd[1]); // close output
   }
 
   // last iteration
@@ -54,8 +69,13 @@ int run_pipes(word_item_t *lstart, flags_t *flags, char rargs[2][255]) {
   fd_args[1] = -1;
   fd_args[0] = fd[0];
 
-  printf("\nnext: %s\n", vargs[0]);
-  run_prog(vargs, flags, NULL, fd_args); // TODO: поменять rargs
+  flags_t n_flags;
+  reset_flags(&n_flags);
+  n_flags.oua = flags->oua;
+  n_flags.out = flags->out;
+  n_flags.bg  = flags->bg;
+
+  run_prog(vargs, &n_flags, rargs, fd_args); // TODO: поменять rargs
 
   close(fd[0]); // close input
 

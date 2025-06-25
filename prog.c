@@ -21,7 +21,6 @@ int run_prog(char **argv, flags_t *flags, char rargs[2][255],
   sigaddset(&mask_chld, SIGCHLD);
   sigemptyset(&mask_emtpy);
 
-
   // "cd" case
   if (!strcmp(argv[0], "cd")) {
     char *a;
@@ -92,20 +91,22 @@ int mkprp(flags_t *flags, char rargs[2][255], int in_out[2]) {
       return -1;
     }
     dup2(fd, 0);
+    close(fd);
   }
 
   if (flags->oua || flags->out) {
     int fd;
     if (flags->oua) {
-      fd = open(rargs[1], O_WRONLY | O_APPEND | O_CREAT);
+      fd = open(rargs[1], O_WRONLY | O_APPEND | O_CREAT, 0666);
     } else if (flags->out) {
-      fd = open(rargs[1], O_WRONLY | O_TRUNC | O_CREAT);
+      fd = open(rargs[1], O_WRONLY | O_TRUNC | O_CREAT, 0666);
     }
     if (fd == -1) {
       fprintf(stderr, "Error: can't open file \"%s\" for output\n", rargs[1]);
       return -1;
     }
     dup2(fd, 1);
+    close(fd);
   }
 
   if (in_out[0] != -1) {

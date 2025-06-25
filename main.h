@@ -27,7 +27,7 @@ enum {
   EXT = 1,
   WAND = 2,  // operator: &&
   WPIP = 4,  // operator: |
-  WINBC = 8, // operator: &
+  WINBG = 8, // operator: &
   WINP = 16,  // operator: <
   WOUA = 32,  // operator: >>
   WOUT = 64,  // operator: >
@@ -45,3 +45,5 @@ int run_pipes(word_item_t *lstart, flags_t *flags, char rargs[2][255]);
 int extract_word(char dest[255], flags_t *flags);
 void clear_buf();
 int analyze_word(char word[255]);
+// helpers
+void reset_flags(flags_t *flags);
