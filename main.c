@@ -114,24 +114,24 @@ can be used only in the last chain of pipe!\n");
         l_add(&wcur, &wstart, curstr, wlen);
       }
 
-      // if (flags.nlin && !flags.err) {
-      //   flags.inv = 1;
-      //   if (flags.pip) {
-      //     res_status = run_pipes(wstart, &flags, rargs);
-      //   } else {
-      //     int in_out[2];
-      //     in_out[0] = -1;
-      //     in_out[1] = -1;
-      //     char **argv;
-      //     convlist(wstart, &argv);
-      //     res_status = run_prog(argv, &flags, rargs, in_out);
-      //   }
-      //   if (WIFEXITED(res_status)) {
-      //     res_status = WEXITSTATUS(res_status);
-      //   } else {
-      //     res_status = WTERMSIG(res_status);
-      //   }
-      // }
+      if (flags.nlin && !flags.err) {
+        flags.inv = 1;
+        if (flags.pip) {
+          res_status = run_pipes(wstart, &flags, rargs);
+        } else {
+          int in_out[2];
+          in_out[0] = -1;
+          in_out[1] = -1;
+          char **argv;
+          convlist(wstart, &argv);
+          res_status = run_prog(argv, &flags, rargs, in_out);
+        }
+        if (WIFEXITED(res_status)) {
+          res_status = WEXITSTATUS(res_status);
+        } else {
+          res_status = WTERMSIG(res_status);
+        }
+      }
 
       flags.par_used = 0; // reset "parentheses were used" flag
     }
