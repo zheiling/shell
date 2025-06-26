@@ -30,6 +30,15 @@ int extract_word(char dest[255], flags_t *flags) {
   int sc = 0;
   int fi = 1;
   int openpar = 0;
+  static char prev_sc = 0;
+  static char prev_c = 0;
+
+  if (prev_c) {
+    dest[i++] = prev_c;
+    prev_c = 0;
+  }
+  if (prev_sc)
+    dest[i++] = prev_sc;
 
   while ((c = getchar()) == ' ')
     ;
@@ -53,12 +62,31 @@ int extract_word(char dest[255], flags_t *flags) {
     case '\\':
       sc = 1;
       break;
+    case '|':
+    case '<':
+    case '>':
+    case '&':
+      if (i != 0 && !prev_sc) {
+        prev_sc = c;
+        goto end_loop;
+      } else if (i != 0 && prev_sc) {
+        dest[i++] = c;
+        prev_c = 0;
+        goto end_loop;
+      }
     default:
-      dest[i++] = c;
+      if (!prev_sc) {
+        dest[i++] = c;
+      } else {
+        prev_c = c;
+        prev_sc = 0;
+        goto end_loop;
+      }
     }
   } while ((c = getchar()) && (c != ' ' || sc || openpar) && c != '\n' &&
            i < 255);
 
+end_loop:
   dest[i++] = '\0';
 
   if (openpar) {
