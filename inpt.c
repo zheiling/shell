@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-int analyze_word(char word[255]) {
+// TODO: использовать ungetc
+
+int analyze_word(char word[MAX_LINE]) {
   if (!strcmp(word, "&&"))
     return WAND;
   if (!strcmp(word, ">>"))
@@ -24,14 +26,20 @@ int analyze_word(char word[255]) {
   return WORD;
 }
 
-int extract_word(char dest[255], flags_t *flags) {
+int extract_word(char dest[MAX_LINE], flags_t *flags, char line[MAX_LINE]) {
   char c;
   int i = 0;
+  static int l_idx = 0;
   int sc = 0;
   int fi = 1;
   int openpar = 0;
   static char prev_sc = 0;
   static char prev_c = 0;
+
+  if (!flags->nfw) {
+    l_idx = 0;
+    flags->nfw = 1;
+  }
 
   if (prev_c) {
     dest[i++] = prev_c;
@@ -40,7 +48,7 @@ int extract_word(char dest[255], flags_t *flags) {
   if (prev_sc)
     dest[i++] = prev_sc;
 
-  while ((c = getchar()) == ' ')
+  while ((c = line[l_idx++]) == ' ')
     ;
 
   do {
@@ -83,8 +91,8 @@ int extract_word(char dest[255], flags_t *flags) {
         goto end_loop;
       }
     }
-  } while ((c = getchar()) && (c != ' ' || sc || openpar) && c != '\n' &&
-           i < 255);
+  } while ((c = line[l_idx++]) && (c != ' ' || sc || openpar) && c != '\n' &&
+           i < MAX_LINE);
 
 end_loop:
   dest[i++] = '\0';
@@ -104,14 +112,8 @@ end_loop:
   }
 err:
   if (c != '\n') {
-    clear_buf();
+    l_idx = 0;
   }
   flags->err = 1;
   return -1;
-}
-
-void clear_buf() {
-  char c;
-  while ((c = getchar() != '\n'))
-    ;
 }

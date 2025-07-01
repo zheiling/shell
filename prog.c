@@ -11,10 +11,10 @@
 
 volatile static sig_atomic_t gpid = 0;
 
-int mkprp(flags_t *flags, char rargs[2][255], int in_out[2]);
+int mkprp(flags_t *flags, char rargs[2][MAX_LINE], int in_out[2]);
 void sigchld_handler(int s);
 
-int run_prog(char **argv, flags_t *flags, char rargs[2][255],
+int run_prog(char **argv, flags_t *flags, char rargs[2][MAX_LINE],
              int in_out[2]) {
   sigset_t mask_chld, mask_emtpy;
   sigemptyset(&mask_chld);
@@ -83,7 +83,7 @@ int run_prog(char **argv, flags_t *flags, char rargs[2][255],
   return status;
 }
 
-int mkprp(flags_t *flags, char rargs[2][255], int in_out[2]) {
+int mkprp(flags_t *flags, char rargs[2][MAX_LINE], int in_out[2]) {
   if (flags->inp) {
     int fd = open(rargs[0], O_RDONLY);
     if (fd == -1) {

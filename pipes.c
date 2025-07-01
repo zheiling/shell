@@ -17,7 +17,7 @@ char **lp_shift(pipe_l_t **src);
 
 void sigpipehandler(int s) { exit(0); }
 
-int run_pipes(word_item_t *lstart, flags_t *flags, char rargs[2][255]) {
+int run_pipes(word_item_t *lstart, flags_t *flags, char rargs[2][MAX_LINE]) {
   pipe_l_t *pl_start = iterate_list(flags, lstart);
   char **vargs;
   int fd[2];

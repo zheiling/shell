@@ -11,4 +11,5 @@ void reset_flags(flags_t *flags) {
   flags->warg = 0;
   flags->bg = 0;
   flags->pip = 0;
+  flags->nfw = 0;
 }
