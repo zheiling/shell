@@ -10,50 +10,12 @@
 void show_invitation();
 int res_status = 0;
 
-// TODO: поиск по директориям для работы автозаполнения по Tab
-// TODO: не трогать промпт при редактировании строки
-// TODO: попробовать считывание по блокам
-
 int main(int argc, char *argv[]) {
-  // if (argc < 3) {
-  //   fprintf(stderr, "Usage: <dict> <dest>\n");
-  //   return 1;
-  // }
-  // // open files
-  // FILE *f_dic = fopen(argv[1], "r");
-  // if (f_dic == NULL) {
-  //   perror(argv[1]);
-  //   return errno;
-  // }
-  // FILE *f_dest = fopen(argv[2], "w");
-  // if (f_dest == NULL) {
-  //   perror(argv[2]);
-  //   return errno;
-  // }
-
   if (!isatty(0)) {
     fprintf(stderr, "Use only with terminals!\n");
     return 1;
   }
-
-  // analyze vocabulary
-  // word_item_t *l_st, *l_cur;
-  // word_item_t tmp;
-
-  // int a;
-  // char word[MAX_LINE];
-  // int i = 0;
-  // while ((a = getc(f_dic)) != EOF) {
-  //   switch (a) {
-  //   case '\n':
-  //     l_add(&l_cur, &l_st, word, i);
-  //     i = 0;
-  //     break;
-  //   default:
-  //     word[i++] = (char)a;
-  //   }
-  // }
-
+  
   struct termios ts1, ts2;
 
   tcgetattr(0, &ts1);
@@ -96,33 +58,44 @@ int main(int argc, char *argv[]) {
       break;
     case 9:
       // tab logic
-      // buf[buf_index] = '\0';
-      // int len = p_search_by_key(l_st, buf + nw_pos);
-      // if (len == 0)
-      //   break;
-      // if (len == 1) {
-      //   erase_symbols(buf_index);
-      //   buf_index = strlen(buf);
-      //   buf[buf_index++] = ' ';
-      //   nw_pos = buf_index;
-      // }
-      // write(0, buf, buf_index);
+      buf[buf_index] = '\0';
+      int word_start = !nw_pos;
+      int len = p_search_by_key(buf + nw_pos, word_start);
+      if (len == 0)
+        break;
+      if (len == 1) {
+        erase_symbols(buf_index);
+        buf_index = strlen(buf);
+        buf[buf_index++] = ' ';
+        nw_pos = buf_index;
+      }
+      // перерисовывать вместе с приглашением
+      write(0, buf, buf_index);
       break;
     case 10:
       buf[buf_index++] = '\n';
+      putchar('\n');
       process_line(buf);
       show_invitation();
       buf[0] = '\0';
       buf_index = 0;
       nw_pos = 0;
       break;
-    case 23:
-      if (buf[buf_index - 1] == ' ') {
-        buf_index--;
-        nw_pos = last_space(buf, buf_index) + 1;
+    case 23: // Ctrl-W
+      if (buf_index > 0) {
+        if (buf[buf_index - 1] == ' ') {
+          buf_index--;
+          nw_pos = last_space(buf, buf_index) + 1;
+          erase_symbols(1);
+        }
+        if (nw_pos > 0) {
+          erase_symbols(buf_index - nw_pos);
+          buf_index = nw_pos;
+        } else {
+          erase_symbols(buf_index);
+          buf_index = 0;
+        }
       }
-      erase_symbols(buf_index - nw_pos + 1);
-      buf_index = nw_pos;
       break;
     case 27: {
       if (cs[1] == 91) {

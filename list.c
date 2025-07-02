@@ -1,8 +1,10 @@
 #include "main.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-int l_add(word_item_t **current, word_item_t **start, const char *a, int asize) {
+int l_add(word_item_t **current, word_item_t **start, const char *a,
+          int asize) {
   word_item_t *nitem = malloc(sizeof(word_item_t));
   nitem->word = malloc(asize);
   strncpy(nitem->word, a, asize);
@@ -23,15 +25,18 @@ int l_shift(word_item_t **src, word_item_t *dst, word_item_t **current) {
   }
 
   if (dst->word != NULL) {
-    free(dst->word);
+    if (strlen(dst->word))
+      free(dst->word);
   }
 
   dst->word = malloc(sizeof((*src)->word));
 
   strcpy(dst->word, (*src)->word);
   dst->next = (*src)->next;
-  free((*src)->word);
-  free((*src));
+  if (strlen((*src)->word))
+    free((*src)->word);
+  if (*src)
+    free((*src));
   *src = dst->next;
 
   return 0;
@@ -57,7 +62,8 @@ int convlist(word_item_t *lstart, char ***argvp) {
 
   int i;
   for (i = 0; i < len; i++, lcurrent = lcurrent->next) {
-    if (!strcmp(lcurrent->word, "|")) break;
+    if (!strcmp(lcurrent->word, "|"))
+      break;
     (*argvp)[i] = lcurrent->word;
   }
   (*argvp)[i] = NULL;
@@ -106,4 +112,17 @@ int l_search(word_item_t *start, char *key_w, word_item_t **fsstart) {
     ptr = ptr->next;
   }
   return count;
+}
+
+int find_occ(word_item_t *start, char *key_w) {
+  word_item_t *ptr = start;
+  int key_len = strlen(key_w);
+
+  while (ptr != NULL) {
+    if (!strncmp(ptr->word, key_w, key_len)) {
+      return 1;
+    }
+    ptr = ptr->next;
+  }
+  return 0;
 }
