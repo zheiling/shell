@@ -29,7 +29,7 @@ int l_shift(word_item_t **src, word_item_t *dst, word_item_t **current) {
       free(dst->word);
   }
 
-  dst->word = malloc(sizeof((*src)->word));
+  dst->word = malloc(strlen((*src)->word));
 
   strcpy(dst->word, (*src)->word);
   dst->next = (*src)->next;
@@ -114,6 +114,7 @@ int l_search(word_item_t *start, char *key_w, word_item_t **fsstart) {
   return count;
 }
 
+// find occurences
 int find_occ(word_item_t *start, char *key_w) {
   word_item_t *ptr = start;
   int key_len = strlen(key_w);

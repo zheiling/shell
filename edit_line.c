@@ -62,6 +62,7 @@ int p_search_by_key(char *key, int first_word) {
   if (vnum == 1) {
     l_shift(&sr_s, &wtmp, &sr_c);
     strcpy(key, wtmp.word);
+    free(wtmp.word);
   } else if (vnum > 1) {
     while (!l_shift(&sr_s, &wtmp, &sr_c)) {
       printf("%s\t", wtmp.word);

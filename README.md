@@ -11,4 +11,4 @@ This project is my playground, take not it serious!
 
 - [ ] Fully rewrite the line after using Tab with multiple answers
 
-- [ ] Check output of the suggestions from the PATH in order to find a bug.
+- [x] Check output of the suggestions from the PATH in order to find a bug.
