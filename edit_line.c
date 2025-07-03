@@ -9,11 +9,12 @@
 #include <termios.h>
 #include <unistd.h>
 
-int it_dir(DIR *dir, char *key, int keylen, word_item_t **sr_s,
+extern FILE *log_f;
+
+int it_dir(char *name, char *key, int keylen, word_item_t **sr_s,
            word_item_t **sr_c);
 
-int p_search_by_key(char *key, int first_word) {
-  DIR *dir;
+int p_search_by_key(char *key, int first_word, word_item_t **wptr) {
   char name[256] = ".";
 
   word_item_t wtmp;
@@ -36,17 +37,11 @@ int p_search_by_key(char *key, int first_word) {
       name[i] = '\0';
       if (names[idx] == ':')
         idx++;
-      dir = opendir(name);
-      if (!dir)
-        goto error;
-      vnum += it_dir(dir, key, keylen, &sr_s, &sr_c);
+      vnum += it_dir(name, key, keylen, &sr_s, &sr_c);
     }
-
   } else { // argument (file name)
     if (key[0] == '/') {
-      dir = opendir("/");
-    } else {
-      dir = opendir(".");
+      strcpy(name, ".");
     }
     char *keystart = key;
     if (key[0] == '.' && key[1] == '/') {
@@ -56,26 +51,10 @@ int p_search_by_key(char *key, int first_word) {
       keystart++;
       keylen--;
     }
-    vnum += it_dir(dir, keystart, keylen, &sr_s, &sr_c);
+    vnum += it_dir(name, keystart, keylen, &sr_s, &sr_c);
   }
 
-  if (vnum == 1) {
-    l_shift(&sr_s, &wtmp, &sr_c);
-    strcpy(key, wtmp.word);
-    free(wtmp.word);
-  } else if (vnum > 1) {
-    while (!l_shift(&sr_s, &wtmp, &sr_c)) {
-      printf("%s\t", wtmp.word);
-    }
-    putchar('\n');
-    free(wtmp.word);
-  }
-
-error:
-  if (!dir) {
-    perror(name);
-    return 1;
-  }
+  *wptr = sr_s;
 
   return vnum;
 }
@@ -157,14 +136,21 @@ int last_space(char arr[], int buf_index) {
   return spos;
 }
 
-int it_dir(DIR *dir, char *key, int keylen, word_item_t **sr_s,
+int it_dir(char *name, char *key, int keylen, word_item_t **sr_s,
            word_item_t **sr_c) {
   struct dirent *dent;
   int len = 0;
   char ctmp[MAX_LINE];
   word_item_t wtmp;
-  char name[256];
-  char *namen;
+  char fname[256];
+  DIR *dir;
+
+  dir = opendir(name);
+
+  if (!dir) {
+    perror(name);
+    return -1;
+  }
 
   while ((dent = readdir(dir)) != NULL) {
     strcpy(name, dent->d_name);
@@ -172,12 +158,12 @@ int it_dir(DIR *dir, char *key, int keylen, word_item_t **sr_s,
       if (!strncmp(name, key, keylen)) {
         if (find_occ(*sr_s, name))
           continue;
-        namen = name; // !debug
         if (!l_add(sr_c, sr_s, dent->d_name, strlen(dent->d_name))) {
           len++;
         }
       }
     }
   }
+  closedir(dir);
   return len;
 }

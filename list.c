@@ -1,13 +1,17 @@
 #include "main.h"
+#include <malloc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+extern FILE *log_f;
+
 int l_add(word_item_t **current, word_item_t **start, const char *a,
           int asize) {
   word_item_t *nitem = malloc(sizeof(word_item_t));
-  nitem->word = malloc(asize);
+  nitem->word = (char *) malloc(asize+1);
   strncpy(nitem->word, a, asize);
+  nitem->word[asize] = '\0';
   nitem->next = NULL;
   if (*current != NULL) {
     (*current)->next = nitem;
@@ -20,7 +24,9 @@ int l_add(word_item_t **current, word_item_t **start, const char *a,
 
 int l_shift(word_item_t **src, word_item_t *dst, word_item_t **current) {
   if (*src == NULL) {
-    *current = NULL;
+    if (current != NULL) {
+      *current = NULL;
+    }
     return 1;
   }
 
@@ -28,7 +34,6 @@ int l_shift(word_item_t **src, word_item_t *dst, word_item_t **current) {
     if (strlen(dst->word))
       free(dst->word);
   }
-
   dst->word = malloc(strlen((*src)->word));
 
   strcpy(dst->word, (*src)->word);

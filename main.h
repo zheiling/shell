@@ -55,7 +55,7 @@ int run_pipes(word_item_t *lstart, flags_t *flags, char rargs[2][MAX_LINE]);
 int extract_word(char dest[MAX_LINE], flags_t *flags, char line[]);
 int analyze_word(char word[MAX_LINE]);
 // edit line
-int p_search_by_key(char *key, int first_word);
+int p_search_by_key(char *key, int first_word, word_item_t **wptr);
 void move_cursor(int num);
 void erase_symbols(int num);
 void del_sym(char arr[], int cur_ind, int *buf_index);

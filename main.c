@@ -2,7 +2,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-// #include <stdlib.h>
+#include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
@@ -13,9 +13,9 @@ int res_status = 0;
 int main(int argc, char *argv[]) {
   if (!isatty(0)) {
     fprintf(stderr, "Use only with terminals!\n");
-    return 1;
+    goto exit;
   }
-  
+
   struct termios ts1, ts2;
 
   tcgetattr(0, &ts1);
@@ -30,7 +30,11 @@ int main(int argc, char *argv[]) {
   int buf_index = 0;
   int read_ret;
   int nw_pos = 0;
-  int cur_ind = 0; // cursor indent
+  int cur_ind = 0;      // cursor indent
+  word_item_t wtmp;     // temporary word_item
+  word_item_t *wtmpptr; // temporary word_item pointer
+  wtmpptr = NULL;
+  wtmp.word = NULL;
 
   show_invitation();
 
@@ -58,16 +62,32 @@ int main(int argc, char *argv[]) {
       break;
     case 9:
       // tab logic
+      if (buf_index == 0) {
+        buf[buf_index++] = '\t';
+        write(0, buf, buf_index);
+        break;
+      }
       buf[buf_index] = '\0';
       int word_start = !nw_pos;
-      int len = p_search_by_key(buf + nw_pos, word_start);
+      int len = p_search_by_key(buf + nw_pos, word_start, &wtmpptr);
       if (len == 0)
         break;
+
+      erase_symbols(buf_index);
       if (len == 1) {
-        erase_symbols(buf_index);
+        l_shift(&wtmpptr, &wtmp, NULL);
+        strcpy(buf + nw_pos, wtmp.word);
+        free(wtmp.word);
         buf_index = strlen(buf);
-        buf[buf_index++] = ' ';
         nw_pos = buf_index;
+      } else {
+        while (!l_shift(&wtmpptr, &wtmp, NULL)) {
+          printf("%s\t", wtmp.word);
+          fflush(stdout);
+        }
+        free(wtmp.word);
+        putchar('\n');
+        show_invitation();
       }
       // перерисовывать вместе с приглашением
       write(0, buf, buf_index);
@@ -135,6 +155,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
+exit:
   if (read_ret == -1) {
     return errno;
   }
