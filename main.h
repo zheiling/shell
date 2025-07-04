@@ -45,7 +45,7 @@ int l_shift(word_item_t **src, word_item_t *dst, word_item_t **current);
 int convlist(word_item_t *lstart, char ***argv);
 int l_search(word_item_t *start, char *key_w, word_item_t **fsstart);
 int l_add_2(word_item_t **current, word_item_t **start, char *a);
-int l_shift_2(word_item_t **src, char **dst, word_item_t **current);
+int l_shift_2(word_item_t **src, char dst[MAX_LINE], word_item_t **current);
 int find_occ(word_item_t *start, char *key_w);
 // prog
 int run_prog(char **argv, flags_t *flags, char rargs[2][MAX_LINE], int in_out[2]);

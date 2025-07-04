@@ -77,7 +77,6 @@ int main(int argc, char *argv[]) {
       if (len == 1) {
         l_shift(&wtmpptr, &wtmp, NULL);
         strcpy(buf + nw_pos, wtmp.word);
-        free(wtmp.word);
         buf_index = strlen(buf);
         nw_pos = buf_index;
       } else {
@@ -85,7 +84,6 @@ int main(int argc, char *argv[]) {
           printf("%s\t", wtmp.word);
           fflush(stdout);
         }
-        free(wtmp.word);
         putchar('\n');
         show_invitation();
       }

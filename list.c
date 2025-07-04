@@ -9,7 +9,7 @@ extern FILE *log_f;
 int l_add(word_item_t **current, word_item_t **start, const char *a,
           int asize) {
   word_item_t *nitem = malloc(sizeof(word_item_t));
-  nitem->word = (char *) malloc(asize+1);
+  nitem->word = (char *)malloc(asize + 1);
   strncpy(nitem->word, a, asize);
   nitem->word[asize] = '\0';
   nitem->next = NULL;
@@ -31,17 +31,22 @@ int l_shift(word_item_t **src, word_item_t *dst, word_item_t **current) {
   }
 
   if (dst->word != NULL) {
-    if (strlen(dst->word))
-      free(dst->word);
+    free(dst->word);
   }
-  dst->word = malloc(strlen((*src)->word));
+  int stlen = strlen((*src)->word);
+  dst->word = malloc(stlen + 1);
 
+  if (dst->word == NULL) {
+    fprintf(stderr, "Oshibka !\n");
+    return 2;
+  }
   strcpy(dst->word, (*src)->word);
+
   dst->next = (*src)->next;
-  if (strlen((*src)->word))
+  if (dst != *src) {
     free((*src)->word);
-  if (*src)
     free((*src));
+  }
   *src = dst->next;
 
   return 0;
@@ -89,14 +94,14 @@ int l_add_2(word_item_t **current, word_item_t **start, char *a) {
   return 0;
 }
 
-int l_shift_2(word_item_t **src, char **dst, word_item_t **current) {
+int l_shift_2(word_item_t **src, char dst[MAX_LINE], word_item_t **current) {
   if (*src == NULL) {
     *current = NULL;
     return 1;
   }
 
   word_item_t *src2 = *src;
-  *dst = (*src)->word;
+  strcpy(dst, (*src)->word);
   *src = (*src)->next;
   free((src2));
   return 0;
