@@ -10,6 +10,9 @@
 void show_invitation();
 int res_status = 0;
 
+// TODO: использовать l_shift_2 (вместо временного node просто подставлять адрес
+// строки);
+
 int main(int argc, char *argv[]) {
   if (!isatty(0)) {
     fprintf(stderr, "Use only with terminals!\n");
@@ -76,9 +79,22 @@ int main(int argc, char *argv[]) {
       erase_symbols(buf_index);
       if (len == 1) {
         l_shift(&wtmpptr, &wtmp, NULL);
-        strcpy(buf + nw_pos, wtmp.word);
+        char *namen = buf;
+        int slashpos = -1;
+
+        for (int i = 0; buf[i] != '\0'; i++) {
+          if (buf[i] == '/') slashpos = i;
+        }
+
+        if (slashpos >= 0) {
+          strcpy(buf + slashpos + 1, wtmp.word);
+        } else {
+          strcpy(buf + nw_pos, wtmp.word);
+        }
         buf_index = strlen(buf);
-        nw_pos = buf_index;
+        if (buf[buf_index - 1] != '/') {
+          nw_pos = buf_index;
+        }
       } else {
         while (!l_shift(&wtmpptr, &wtmp, NULL)) {
           printf("%s\t", wtmp.word);

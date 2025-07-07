@@ -1,4 +1,5 @@
 #include "main.h"
+#include <ctype.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <linux/limits.h>
@@ -10,12 +11,14 @@
 #include <unistd.h>
 
 extern FILE *log_f;
+int analyze_key(char *key, char *dirname, char *filename);
 
 int it_dir(char *name, char *key, int keylen, word_item_t **sr_s,
            word_item_t **sr_c);
 
 int p_search_by_key(char *key, int first_word, word_item_t **wptr) {
-  char name[256] = ".";
+  char dirname[MAX_INPUT] = ".";
+  char filename[MAX_INPUT];
 
   word_item_t wtmp;
   wtmp.word = NULL;
@@ -32,26 +35,16 @@ int p_search_by_key(char *key, int first_word, word_item_t **wptr) {
     while (names[idx]) {
       int i;
       for (i = 0; names[idx] && names[idx] != ':'; idx++, i++) {
-        name[i] = names[idx];
+        dirname[i] = names[idx];
       }
-      name[i] = '\0';
+      dirname[i] = '\0';
       if (names[idx] == ':')
         idx++;
-      vnum += it_dir(name, key, keylen, &sr_s, &sr_c);
+      vnum += it_dir(dirname, key, keylen, &sr_s, &sr_c);
     }
   } else { // argument (file name)
-    if (key[0] == '/') {
-      strcpy(name, ".");
-    }
-    char *keystart = key;
-    if (key[0] == '.' && key[1] == '/') {
-      keystart += 2;
-      keylen -= 2;
-    } else if (key[0] == '/') {
-      keystart++;
-      keylen--;
-    }
-    vnum += it_dir(name, keystart, keylen, &sr_s, &sr_c);
+    keylen = analyze_key(key, dirname, filename);
+    vnum += it_dir(dirname, filename, keylen, &sr_s, &sr_c);
   }
 
   *wptr = sr_s;
@@ -136,14 +129,23 @@ int last_space(char arr[], int buf_index) {
   return spos;
 }
 
+// Iterate through the directory
 int it_dir(char *name, char *key, int keylen, word_item_t **sr_s,
            word_item_t **sr_c) {
   struct dirent *dent;
   int len = 0;
   char ctmp[MAX_LINE];
   word_item_t wtmp;
-  char fname[256];
+  char fname[MAX_LINE];
+  char fname_l[MAX_LINE];
   DIR *dir;
+  char key_l[MAX_LINE];
+
+  strcpy(key_l, key);
+
+  for (int i = 0; key_l[i] != '\0'; i++) {
+    key_l[i] = tolower(key_l[i]);
+  }
 
   dir = opendir(name);
 
@@ -153,17 +155,56 @@ int it_dir(char *name, char *key, int keylen, word_item_t **sr_s,
   }
 
   while ((dent = readdir(dir)) != NULL) {
-    strcpy(name, dent->d_name);
-    if (strlen(name)) {
-      if (!strncmp(name, key, keylen)) {
+    strcpy(fname, dent->d_name);
+    if (strlen(fname)) {
+      strcpy(fname_l, dent->d_name);
+
+      for (int i = 0; fname_l[i] != '\0'; i++) {
+        fname_l[i] = tolower(fname_l[i]);
+      }
+
+      if (!strncmp(fname_l, key_l, keylen)) {
         if (find_occ(*sr_s, name))
           continue;
-        if (!l_add(sr_c, sr_s, dent->d_name, strlen(dent->d_name))) {
-          len++;
+
+        int fnmlen = strlen(fname);
+        if (dent->d_type == DT_DIR) {
+          fname[fnmlen++] = '/';
+          fname[fnmlen] = '\0';
         }
+        if (!l_add(sr_c, sr_s, fname, fnmlen))
+          len++;
       }
     }
   }
   closedir(dir);
   return len;
+}
+
+int analyze_key(char *key, char *dirname, char *filename) {
+  int d_end_index = -1;
+  int idx;
+  int klen = 0;
+
+  for (idx = 0; key[idx] != '\0'; idx++) {
+    if (key[idx] == '/')
+      d_end_index = idx;
+  }
+
+  if (d_end_index >= 0) {
+    strncpy(dirname, key, d_end_index + 1);
+
+    if (idx > d_end_index) {
+      strcpy(filename, key + d_end_index + 1);
+      klen = strlen(key + d_end_index + 1);
+    } else {
+      filename[0] = '\0';
+    }
+  } else {
+    strcpy(filename, key);
+    klen = strlen(key);
+    strcpy(dirname, ".");
+  }
+
+  return klen;
 }
