@@ -164,7 +164,7 @@ int it_dir(char *name, char *key, int keylen, word_item_t **sr_s,
       }
 
       if (!strncmp(fname_l, key_l, keylen)) {
-        if (find_occ(*sr_s, name))
+        if (find_occ(*sr_s, fname))
           continue;
 
         int fnmlen = strlen(fname);
