@@ -16,7 +16,7 @@ int res_status = 0;
 int main(int argc, char *argv[]) {
   if (!isatty(0)) {
     fprintf(stderr, "Use only with terminals!\n");
-    goto exit;
+    return 1;
   }
 
   struct termios ts1, ts2;
@@ -29,156 +29,46 @@ int main(int argc, char *argv[]) {
   tcsetattr(0, TCSANOW, &ts1);
 
   char buf[MAX_LINE];
-  char cs[8];
-  int buf_index = 0;
-  int read_ret;
-  int nw_pos = 0;
-  int cur_ind = 0;      // cursor indent
-  word_item_t wtmp;     // temporary word_item
-  word_item_t *wtmpptr; // temporary word_item pointer
-  wtmpptr = NULL;
-  wtmp.word = NULL;
+  word_item_t *arg_list = NULL;
+  flags_t flags;
+  char rargs[2][MAX_LINE]; // <, (> || >>)
+  word_item_t tmp;
 
-  show_invitation();
+  while (1) {
+    reset_flags(&flags);
+    show_invitation();
+    res_status = 0;
+    if (edit_line(buf)) {
+      perror("Get line");
+    } else {
+      process_line(buf, &arg_list, &flags, rargs);
+      
+      if (flags.err) {
+        // TODO: здесь централизованно выводить ошибки
+        while (!l_shift(&arg_list, &tmp, NULL))
+          ;
+        continue;
+      }
 
-  while ((read_ret = read(0, cs, 8)) > 0) {
-    switch (cs[0]) {
-    case 3:
-    case 4:
-    case 26:
-    case 28:
-      return 0;
-    case 8:
-    case 127: // DEL
-      if (!cur_ind) {
-        if (buf_index > 0) {
-          write(1, "\b \b", sizeof("\b \b"));
-          buf_index--;
-        }
+      if (flags.pip) {
+        res_status = run_pipes(arg_list, &flags, rargs);
       } else {
-        erase_symbols(buf_index);
-        del_sym(buf, cur_ind, &buf_index);
-        write(0, buf, buf_index);
-        move_cursor(cur_ind);
+        int in_out[2];
+        in_out[0] = -1;
+        in_out[1] = -1;
+        char **argvs;
+        convlist(arg_list, &argvs);
+        res_status = run_prog(argvs, &flags, rargs, in_out);
       }
-      nw_pos = last_space(buf, buf_index) + 1;
-      break;
-    case 9:
-      // tab logic
-      if (buf_index == 0) {
-        buf[buf_index++] = '\t';
-        write(0, buf, buf_index);
-        break;
-      }
-      buf[buf_index] = '\0';
-      int word_start = !nw_pos;
-      int len = p_search_by_key(buf + nw_pos, word_start, &wtmpptr);
-      if (len == 0)
-        break;
-
-      erase_symbols(buf_index);
-      if (len == 1) {
-        l_shift(&wtmpptr, &wtmp, NULL);
-        char *namen = buf;
-        int slashpos = -1;
-
-        for (int i = 0; buf[i] != '\0'; i++) {
-          if (buf[i] == '/') slashpos = i;
-        }
-
-        if (slashpos >= 0) {
-          strcpy(buf + slashpos + 1, wtmp.word);
-        } else {
-          strcpy(buf + nw_pos, wtmp.word);
-        }
-        buf_index = strlen(buf);
-        if (buf[buf_index - 1] != '/') {
-          nw_pos = buf_index;
-        }
+      if (WIFEXITED(res_status)) {
+        res_status = WEXITSTATUS(res_status);
       } else {
-        while (!l_shift(&wtmpptr, &wtmp, NULL)) {
-          printf("%s\t", wtmp.word);
-          fflush(stdout);
-        }
-        putchar('\n');
-        show_invitation();
-      }
-      // перерисовывать вместе с приглашением
-      write(0, buf, buf_index);
-      break;
-    case 10:
-      buf[buf_index++] = '\n';
-      putchar('\n');
-      process_line(buf);
-      show_invitation();
-      buf[0] = '\0';
-      buf_index = 0;
-      nw_pos = 0;
-      break;
-    case 23: // Ctrl-W
-      if (buf_index > 0) {
-        if (buf[buf_index - 1] == ' ') {
-          buf_index--;
-          nw_pos = last_space(buf, buf_index) + 1;
-          erase_symbols(1);
-        }
-        if (nw_pos > 0) {
-          erase_symbols(buf_index - nw_pos);
-          buf_index = nw_pos;
-        } else {
-          erase_symbols(buf_index);
-          buf_index = 0;
-        }
-      }
-      break;
-    case 27: {
-      if (cs[1] == 91) {
-        switch (cs[2]) {
-        case 68: // <-
-          move_cursor(1);
-          cur_ind++;
-          break;
-        case 67: // ->
-          if (cur_ind > 0) {
-            erase_symbols(buf_index);
-            write(0, buf, buf_index);
-            cur_ind--;
-            move_cursor(cur_ind);
-          }
-          break; // local
-        }
-        break;
+        res_status = WTERMSIG(res_status);
       }
     }
-    default:
-      if (!cur_ind) {
-        buf[buf_index++] = cs[0];
-        write(1, cs, 1);
-      } else {
-        erase_symbols(buf_index);
-        ins_sym(buf, cur_ind, &buf_index, cs[0]);
-        write(0, buf, buf_index);
-        move_cursor(cur_ind);
-      }
-      if (cs[0] == ' ')
-        nw_pos = buf_index;
-    }
-
-    for (int i = 0; i < 8; i++) {
-      cs[i] = 0;
-    }
-  }
-
-exit:
-  if (read_ret == -1) {
-    return errno;
+    errno = 0;
+    buf[0] = '\0';
   }
 
   return 0;
-}
-
-void show_invitation() {
-  fflush(stderr);
-  printf("%d>", res_status);
-  fflush(stdout);
 }

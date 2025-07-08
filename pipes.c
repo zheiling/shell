@@ -83,7 +83,6 @@ int run_pipes(word_item_t *lstart, flags_t *flags, char rargs[2][MAX_LINE]) {
 }
 
 pipe_l_t *iterate_list(flags_t *flags, word_item_t *lstart) {
-  word_item_t tmp;
   word_item_t *wcurrent;
   word_item_t *wstart;
   int reset_on_next = 0;

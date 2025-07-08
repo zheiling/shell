@@ -1,4 +1,5 @@
 #include "main.h"
+#include <stdio.h>
 
 void reset_flags(flags_t *flags) {
   flags->par_used = 0;
@@ -13,3 +14,12 @@ void reset_flags(flags_t *flags) {
   flags->pip = 0;
   flags->nfw = 0;
 }
+
+extern int res_status;
+
+void show_invitation() {
+  fflush(stderr);
+  printf("%d>", res_status);
+  fflush(stdout);
+}
+

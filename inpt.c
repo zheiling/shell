@@ -31,7 +31,6 @@ int extract_word(char dest[MAX_LINE], flags_t *flags, char line[MAX_LINE]) {
   int i = 0;
   static int l_idx = 0;
   int sc = 0;
-  int fi = 1;
   int openpar = 0;
   static char prev_sc = 0;
   static char prev_c = 0;

@@ -1,6 +1,7 @@
 #include "main.h"
 #include <ctype.h>
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <linux/limits.h>
 #include <stdio.h>
@@ -16,12 +17,151 @@ int analyze_key(char *key, char *dirname, char *filename);
 int it_dir(char *name, char *key, int keylen, word_item_t **sr_s,
            word_item_t **sr_c);
 
+int edit_line(char buf[MAX_LINE]) {
+  char cs[8];
+  int buf_index = 0;
+  int nw_pos = 0;
+  int cur_ind = 0;      // cursor indent
+  word_item_t wtmp;     // temporary word_item
+  word_item_t *wtmpptr; // temporary word_item pointer
+  wtmpptr = NULL;
+  wtmp.word = NULL;
+
+  while ((read(0, cs, 8)) > 0) {
+    switch (cs[0]) {
+    case 3:
+    case 4:
+    case 26:
+    case 28:
+      return 0;
+    case 8:
+    case 127: // DEL
+      if (!cur_ind) {
+        if (buf_index > 0) {
+          write(1, "\b \b", sizeof("\b \b"));
+          buf_index--;
+        }
+      } else {
+        erase_symbols(buf_index);
+        del_sym(buf, cur_ind, &buf_index);
+        write(0, buf, buf_index);
+        move_cursor(cur_ind);
+      }
+      nw_pos = last_space(buf, buf_index) + 1;
+      break;
+    case 9:
+      // tab logic
+      if (buf_index == 0) {
+        buf[buf_index++] = '\t';
+        write(0, buf, buf_index);
+        break;
+      }
+      buf[buf_index] = '\0';
+      int word_start = !nw_pos;
+      int len = p_search_by_key(buf + nw_pos, word_start, &wtmpptr);
+      if (len == 0)
+        break;
+
+      erase_symbols(buf_index);
+      if (len == 1) {
+        l_shift(&wtmpptr, &wtmp, NULL);
+        int slashpos = -1;
+
+        for (int i = 0; buf[i] != '\0'; i++) {
+          if (buf[i] == '/')
+            slashpos = i;
+        }
+
+        if (slashpos >= 0) {
+          strcpy(buf + slashpos + 1, wtmp.word);
+        } else {
+          strcpy(buf + nw_pos, wtmp.word);
+        }
+        buf_index = strlen(buf);
+        if (buf[buf_index - 1] != '/') {
+          nw_pos = buf_index;
+        }
+      } else {
+        while (!l_shift(&wtmpptr, &wtmp, NULL)) {
+          printf("%s\t", wtmp.word);
+          fflush(stdout);
+        }
+        putchar('\n');
+        show_invitation();
+      }
+      write(0, buf, buf_index);
+      break;
+    case 10:
+      buf[buf_index++] = '\n';
+      putchar('\n');
+      goto exit;
+      break;
+    case 23: // Ctrl-W
+      if (buf_index > 0) {
+        if (buf[buf_index - 1] == ' ') {
+          buf_index--;
+          nw_pos = last_space(buf, buf_index) + 1;
+          erase_symbols(1);
+        }
+        if (nw_pos > 0) {
+          erase_symbols(buf_index - nw_pos);
+          buf_index = nw_pos;
+        } else {
+          erase_symbols(buf_index);
+          buf_index = 0;
+        }
+      }
+      break;
+    case 27: {
+      if (cs[1] == 91) {
+        switch (cs[2]) {
+        case 68: // <-
+          move_cursor(1);
+          cur_ind++;
+          break;
+        case 67: // ->
+          if (cur_ind > 0) {
+            erase_symbols(buf_index);
+            write(0, buf, buf_index);
+            cur_ind--;
+            move_cursor(cur_ind);
+          }
+          break; // local
+        }
+        break;
+      }
+    }
+    default:
+      if (!cur_ind) {
+        buf[buf_index++] = cs[0];
+        write(1, cs, 1);
+      } else {
+        erase_symbols(buf_index);
+        ins_sym(buf, cur_ind, &buf_index, cs[0]);
+        write(0, buf, buf_index);
+        move_cursor(cur_ind);
+      }
+      if (cs[0] == ' ')
+        nw_pos = buf_index;
+    }
+
+    for (int i = 0; i < 8; i++) {
+      cs[i] = 0;
+    }
+  }
+
+exit:
+  if (errno) {
+    return errno;
+  }
+
+  return 0;
+}
+
 int p_search_by_key(char *key, int first_word, word_item_t **wptr) {
   char dirname[MAX_INPUT] = ".";
   char filename[MAX_INPUT];
 
-  word_item_t wtmp;
-  wtmp.word = NULL;
   word_item_t *sr_s, *sr_c; // search result start, current
   sr_s = sr_c = NULL;
   int vnum = 0;
@@ -30,7 +170,6 @@ int p_search_by_key(char *key, int first_word, word_item_t **wptr) {
   if (first_word && key[0] != '.' && key[0] != '/') { // program name
     char *names = getenv("PATH");
     int idx = 0;
-    int nm_len = strlen(names);
 
     while (names[idx]) {
       int i;
@@ -134,8 +273,6 @@ int it_dir(char *name, char *key, int keylen, word_item_t **sr_s,
            word_item_t **sr_c) {
   struct dirent *dent;
   int len = 0;
-  char ctmp[MAX_LINE];
-  word_item_t wtmp;
   char fname[MAX_LINE];
   char fname_l[MAX_LINE];
   DIR *dir;

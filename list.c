@@ -115,7 +115,6 @@ int l_search(word_item_t *start, char *key_w, word_item_t **fsstart) {
 
   while (ptr != NULL) {
     if (!strncmp(ptr->word, key_w, key_len)) {
-      int w_len = strlen(ptr->word);
       l_add_2(&f_cur, fsstart, ptr->word);
       count++;
     }
